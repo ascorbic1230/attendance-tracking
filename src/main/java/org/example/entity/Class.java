@@ -34,6 +34,16 @@ public class Class {
     public Class() {
     }
 
+    public Class(Date startDate, Date endDate, int weekday, LocalTime startTime, LocalTime endTime, String room, Subject subject) {
+        this.startDate = startDate;
+        this.endDate = endDate;
+        this.weekday = weekday;
+        this.startTime = startTime;
+        this.endTime = endTime;
+        this.room = room;
+        this.subject = subject;
+    }
+
     public Class(Subject subject) {
         this.subject = subject;
     }
