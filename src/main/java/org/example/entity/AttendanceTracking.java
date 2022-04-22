@@ -13,11 +13,21 @@ public class AttendanceTracking {
     private int week;
     private Date date;
     @Column(name = "is_absent")
-    private boolean isAbsent;
+    private Boolean isAbsent;
 
     @ManyToOne
     @JoinColumn(name = "student_class_id")
     private StudentClass studentClass;
+
+    public AttendanceTracking() {
+    }
+
+    public AttendanceTracking(int week, Date date, Boolean isAbsent, StudentClass studentClass) {
+        this.week = week;
+        this.date = date;
+        this.isAbsent = isAbsent;
+        this.studentClass = studentClass;
+    }
 
     public int getId() {
         return id;
@@ -43,11 +53,11 @@ public class AttendanceTracking {
         this.date = date;
     }
 
-    public boolean isAbsent() {
+    public Boolean getAbsent() {
         return isAbsent;
     }
 
-    public void setAbsent(boolean absent) {
+    public void setAbsent(Boolean absent) {
         isAbsent = absent;
     }
 
