@@ -16,5 +16,10 @@
     <property name="format_sql">true</property>
 
     <mapping class="org.example.entity.Subject" />
+    <mapping class="org.example.entity.Student" />
+    <mapping class="org.example.entity.Account" />
+    <mapping class="org.example.entity.Class" />
+    <mapping class="org.example.entity.StudentClass" />
+    <mapping class="org.example.entity.AttendanceTracking" />
   </session-factory>
 </hibernate-configuration>
