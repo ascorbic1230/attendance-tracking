@@ -84,6 +84,7 @@ public class StudentDAO {
             Account account = new Account(id, hashedPassword, true);
             student.setAccount(account);
 
+            session.persist(account);
             session.persist(student);
 
             session.getTransaction().commit();
