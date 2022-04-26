@@ -65,7 +65,14 @@ public class SubjectDAO {
         return res;
     }
 
+    public static boolean isSubjectExists(String subjectId) {
+        Subject s = getSubjectById(subjectId);
+        return s != null;
+    }
+
     public static void createSubject(String id, String name) {
+        if (isSubjectExists(id))
+            return;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             session.getTransaction().begin();
 
@@ -74,6 +81,21 @@ public class SubjectDAO {
             session.persist(subject);
 
             session.getTransaction().commit();
+        }
+    }
+
+    public static void updateSubject(String id, String newName) {
+        if (isSubjectExists(id)) {
+            try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+                session.getTransaction().begin();
+
+                Subject subject = getSubjectById(id);
+                session.evict(subject);
+                subject.setSubjectName(newName);
+                session.update(subject);
+
+                session.getTransaction().commit();
+            }
         }
     }
 }

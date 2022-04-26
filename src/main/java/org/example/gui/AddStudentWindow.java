@@ -1,5 +1,7 @@
 package org.example.gui;
 
+import org.example.dao.StudentClassDAO;
+import org.example.dao.StudentDAO;
 import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 
@@ -10,21 +12,50 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
+import java.io.File;
+import java.io.IOException;
+import java.util.*;
+import java.util.List;
 
-public class AddStudentWindow extends JFrame {
-    private final String[] fakeColumns = {"STT", "MSSV", "Họ tên", "Chọn"};
-    private final Object[][] fakeDatas = {
-            {"1", "19120141", "Nguyễn Quốc Toàn", false},
-            {"2", "19120142", "Nguyễn Văn A", false},
-            {"3", "19120143", "Nguyễn Văn B", false},
-    };
+public class AddStudentWindow extends JFrame implements ActionListener {
+    private final ClassManagerWindow parent;
 
-    public AddStudentWindow() {
+    private final JButton backBtn;
+    private final JButton addStudentBtn;
+    private final JButton getTemplateBtn;
+    private final JButton importCsvBtn;
+    private final JButton confirmBtn;
+
+    private final JTextField studentIdTxt;
+    private final JTextField studentNameTxt;
+
+    private final DefaultTableModel tableModel;
+    private final JTable table;
+
+    private final String[] columnsName = {"STT", "MSSV", "Họ tên", "Chọn"};
+    private String[][] data = null;
+
+    public AddStudentWindow(ClassManagerWindow parent) {
         super(AppUtil.getAppNameVn());
         this.setIconImage(AppUtil.getAppLogo());
-        this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.setSize(1000, 550);
         this.setResizable(false);
+
+        this.parent = parent;
+
+        this.addWindowListener(new WindowAdapter() {
+            @Override
+            public void windowClosing(WindowEvent e) {
+                int answer = JOptionPane.showConfirmDialog(null, "Mọi thay đổi chưa lưu lại sẽ bị mất. Bạn thật sự muốn thoát?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+                if (answer == 0)
+                    dispose();
+            }
+        });
 
         // Container
         JPanel container = new JPanel(new GridLayout(1,2));
@@ -68,24 +99,25 @@ public class AddStudentWindow extends JFrame {
         gbc1.gridwidth = 2;
         gbc1.fill = GridBagConstraints.HORIZONTAL;
         gbc1.weightx = 1;
-        JTextField studentIdTxt = new JTextField();
+        studentIdTxt = new JTextField();
         studentIdTxt.setFont(GuiUtil.defaultFont);
         inputGroup.add(studentIdTxt, gbc1);
 
         // Student name text field
         gbc1.gridy++;
-        JTextField studentNameField = new JTextField();
-        studentNameField.setFont(GuiUtil.defaultFont);
-        inputGroup.add(studentNameField, gbc1);
+        studentNameTxt = new JTextField();
+        studentNameTxt.setFont(GuiUtil.defaultFont);
+        inputGroup.add(studentNameTxt, gbc1);
 
         JPanel panel = new JPanel(new FlowLayout());
         row1.add(panel);
 
         // Add Student button
-        JButton addStudentBtn = new JButton("Thêm");
+        addStudentBtn = new JButton("Thêm");
         addStudentBtn.setFont(GuiUtil.defaultFont);
         addStudentBtn.setPreferredSize(new Dimension(100, 40));
         addStudentBtn.setFocusable(false);
+        addStudentBtn.addActionListener(this);
         panel.add(addStudentBtn);
 
         GridBagConstraints gbc2 = new GridBagConstraints();
@@ -98,19 +130,30 @@ public class AddStudentWindow extends JFrame {
         gbc2.gridx = 0;
         gbc2.gridy = 0;
         gbc2.insets= new Insets(5,0,5,0);
-        JButton getTemplateBtn = new JButton("Lấy CSV template");
+        getTemplateBtn = new JButton("Lấy CSV template");
         getTemplateBtn.setFont(GuiUtil.defaultFont);
         getTemplateBtn.setPreferredSize(new Dimension(200, 50));
         getTemplateBtn.setFocusable(false);
+        getTemplateBtn.addActionListener(this);
         btnGroup.add(getTemplateBtn, gbc2);
 
         // Get CSV template
         gbc2.gridy++;
-        JButton importCsvBtn = new JButton("Nhập từ file CSV");
+        importCsvBtn = new JButton("Nhập từ file CSV");
         importCsvBtn.setFont(GuiUtil.defaultFont);
         importCsvBtn.setPreferredSize(new Dimension(200, 50));
         importCsvBtn.setFocusable(false);
+        importCsvBtn.addActionListener(this);
         btnGroup.add(importCsvBtn, gbc2);
+
+        // back button
+        gbc2.gridy++;
+        backBtn = new JButton("Trở lại");
+        backBtn.setFont(GuiUtil.defaultFont);
+        backBtn.setPreferredSize(new Dimension(100, 40));
+        backBtn.setFocusable(false);
+        backBtn.addActionListener(this);
+        btnGroup.add(backBtn, gbc2);
 
         // Right panel
         JPanel rightPanel = new JPanel(new BorderLayout());
@@ -119,8 +162,8 @@ public class AddStudentWindow extends JFrame {
         container.add(rightPanel);
 
         // Table
-        DefaultTableModel tableModel = new DefaultTableModel(fakeDatas, fakeColumns);
-        JTable table = new JTable(tableModel) {
+        tableModel = new DefaultTableModel(data, columnsName);
+        table = new JTable(tableModel) {
             @Override
             public Class<?> getColumnClass(int columnIndex) {
                 if (columnIndex == 3) {
@@ -166,13 +209,92 @@ public class AddStudentWindow extends JFrame {
         rightPanel.add(panel2, BorderLayout.SOUTH);
 
         // Confirm Button
-        JButton confirmBtn = new JButton("Xác nhận");
+        confirmBtn = new JButton("Xác nhận");
         confirmBtn.setFont(GuiUtil.defaultFont);
         confirmBtn.setPreferredSize(new Dimension(200, 50));
         confirmBtn.setFocusable(false);
+        confirmBtn.addActionListener(this);
         panel2.add(confirmBtn);
 
         this.setLocationRelativeTo(null);
         this.setVisible(true);
+    }
+
+    private void addStudentToTable(String studentId, String studentName) {
+        int numRows = table.getRowCount();
+        String stt = String.valueOf(numRows + 1);
+        tableModel.addRow(new Object[] {stt, studentId, studentName, false});
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == backBtn) {
+            int answer = JOptionPane.showConfirmDialog(null, "Mọi thay đổi chưa lưu lại sẽ bị mất. Bạn thật sự muốn thoát?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (answer == 0)
+                this.dispose();
+        }
+        else if (e.getSource() == addStudentBtn) {
+            String studentId = studentIdTxt.getText();
+            String studentName = studentNameTxt.getText();
+            if (studentId.equals("") || studentName.equals("")) {
+                JOptionPane.showMessageDialog(null, "Không được bỏ trống", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+            else {
+                addStudentToTable(studentId, studentName);
+            }
+        }
+        else if (e.getSource() == getTemplateBtn) {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setCurrentDirectory(new File("."));
+            fileChooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                try {
+                    AppUtil.createCsvTemplate(file.getPath());
+                    JOptionPane.showMessageDialog(null, "Lấy thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                } catch (IOException ex) {
+                    throw new RuntimeException(ex);
+                }
+            }
+        }
+        else if (e.getSource() == importCsvBtn) {
+            List<String[]> res = null;
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setCurrentDirectory(new File("."));
+            if (fileChooser.showSaveDialog(null) == JFileChooser.APPROVE_OPTION) {
+                File file = fileChooser.getSelectedFile();
+                res = AppUtil.readCsvFile(file.getPath());
+                for (String[] s : res) {
+                    addStudentToTable(s[0], s[1]);
+                }
+                JOptionPane.showMessageDialog(null, "Nhập dữ liệu thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            }
+        }
+        else if (e.getSource() == confirmBtn) {
+            int classIndex = parent.selectClassCb.getSelectedIndex();
+            int classId = parent.classList.get(classIndex).getId();
+            // Get data from table
+            HashMap<String, String> dataFromTable = new HashMap<>();
+            for (int i = 0; i < tableModel.getRowCount(); i++) {
+                if ((Boolean) tableModel.getValueAt(i,3)) {
+                    String studentId = tableModel.getValueAt(i, 1).toString();
+                    String studentName = tableModel.getValueAt(i, 2).toString();
+                    dataFromTable.put(studentId, studentName);
+                }
+            }
+            // Create student and add to class
+            Set<String> keySet = dataFromTable.keySet();
+            for (String studentId : keySet) {
+                if (!StudentClassDAO.isStudentInClass(studentId, classId)) {
+                    String studentName = dataFromTable.get(studentId);
+                    StudentDAO.createStudent(studentId, studentName);
+                    StudentClassDAO.addStudentIntoClass(studentId, classId);
+                }
+            }
+            JOptionPane.showMessageDialog(null, "Thao tác thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+            this.dispose();
+            parent.updateData(classId);
+            parent.updateTable();
+        }
     }
 }

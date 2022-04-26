@@ -1,14 +1,23 @@
 package org.example.gui;
 
+import org.example.dao.AccountDAO;
+import org.example.entity.Account;
 import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public class ChangePasswordWindow extends JFrame {
+public class ChangePasswordWindow extends JFrame implements ActionListener {
     private final JPanel panel;
+    private final JButton submitBtn;
+    private final JPasswordField oldPassTxt;
+    private final JPasswordField newPassTxt;
+    private final JPasswordField newPassConfirmTxt;
+    private JButton returnBtn = null;
 
     public ChangePasswordWindow() {
         super(AppUtil.getAppNameVn());
@@ -57,25 +66,26 @@ public class ChangePasswordWindow extends JFrame {
         gbc.gridwidth = 2;
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.weightx = 1;
-        JPasswordField oldPassTxt = new JPasswordField();
+        oldPassTxt = new JPasswordField();
         oldPassTxt.setFont(GuiUtil.defaultFont);
         inputField.add(oldPassTxt, gbc);
         // New Password text field
         gbc.gridy++;
-        JPasswordField newPassTxt = new JPasswordField();
+        newPassTxt = new JPasswordField();
         newPassTxt.setFont(GuiUtil.defaultFont);
         inputField.add(newPassTxt, gbc);
         // New Password Confirm text field
         gbc.gridy++;
-        JPasswordField newPassConfirmTxt = new JPasswordField();
+        newPassConfirmTxt = new JPasswordField();
         newPassConfirmTxt.setFont(GuiUtil.defaultFont);
         inputField.add(newPassConfirmTxt, gbc);
 
         // Submit button
         panel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 20));
-        JButton submitBtn = new JButton("Xác nhận");
+        submitBtn = new JButton("Xác nhận");
         submitBtn.setFont(GuiUtil.defaultFont);
         submitBtn.setMargin(new Insets(8,16,8,16));
+        submitBtn.addActionListener(this);
         panel.add(submitBtn);
         container.add(panel);
 
@@ -85,9 +95,50 @@ public class ChangePasswordWindow extends JFrame {
 
     public void addReturnButton() {
         // Return button
-        JButton returnBtn = new JButton("Trở lại");
+        returnBtn = new JButton("Trở lại");
         returnBtn.setFont(GuiUtil.defaultFont);
         returnBtn.setMargin(new Insets(8,16,8,16));
+        returnBtn.addActionListener(this);
         panel.add(returnBtn);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == submitBtn) {
+            String oldPassword = String.valueOf(oldPassTxt.getPassword());
+            String newPassword = String.valueOf(newPassTxt.getPassword());
+            String newPasswordConfirm = String.valueOf(newPassConfirmTxt.getPassword());
+            if (AccountDAO.checkPassword(AppUtil.username, oldPassword)) {
+                if (newPassword.equals(newPasswordConfirm)) {
+                    AccountDAO.changePassword(AppUtil.username, newPassword);
+                    JOptionPane.showMessageDialog(null, "Đổi mật khẩu thành công", "Thông báo", JOptionPane.INFORMATION_MESSAGE);
+                    AccountDAO.changeLoginStatus(AppUtil.username);
+                    this.dispose();
+                    Account acc = AccountDAO.getAccountByUsername(AppUtil.username);
+                    MainMenuWindow mainMenuWindow = new MainMenuWindow();
+                    if (acc.isStudent()) {
+                        mainMenuWindow.setStudentView();
+                    } else {
+                        mainMenuWindow.setTeacherView();
+                    }
+                }
+                else {
+                    JOptionPane.showMessageDialog(null,"Nhập lại mật khẩu không giống", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+            else {
+                JOptionPane.showMessageDialog(null,"Mật khẩu cũ sai", "Lỗi", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+        else if (e.getSource() == returnBtn) {
+            this.dispose();
+            Account acc = AccountDAO.getAccountByUsername(AppUtil.username);
+            MainMenuWindow mainMenuWindow = new MainMenuWindow();
+            if (acc.isStudent()) {
+                mainMenuWindow.setStudentView();
+            } else {
+                mainMenuWindow.setTeacherView();
+            }
+        }
     }
 }

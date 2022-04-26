@@ -1,8 +1,11 @@
 package org.example.entity;
 
 import jakarta.persistence.*;
+import org.example.utils.AppUtil;
 
+import java.text.SimpleDateFormat;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Date;
 import java.util.HashSet;
 import java.util.Set;
@@ -46,6 +49,21 @@ public class Class {
 
     public Class(Subject subject) {
         this.subject = subject;
+    }
+
+    public String getWeekdayToString() {
+        return AppUtil.getDayOfWeekString(weekday);
+    }
+
+    public String getTimeRangeString() {
+        return startTime.format(DateTimeFormatter.ofPattern("HH:mm")) + " - " + endTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+    }
+
+    public String getDateRangeString() {
+        SimpleDateFormat formatter = new SimpleDateFormat("dd/MM/yyyy");
+        String startDateStr = formatter.format(startDate);
+        String endDateStr = formatter.format(endDate);
+        return startDateStr + " - " + endDateStr;
     }
 
     public int getId() {

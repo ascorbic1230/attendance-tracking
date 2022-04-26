@@ -1,5 +1,9 @@
 package org.example.gui;
 
+import org.example.dao.AttendanceTrackingDAO;
+import org.example.dao.StudentClassDAO;
+import org.example.entity.AttendanceTracking;
+import org.example.entity.StudentClass;
 import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 
@@ -10,26 +14,22 @@ import javax.swing.table.DefaultTableCellRenderer;
 import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.util.ArrayList;
 
-public class RollCallHistoryWindow extends JFrame {
-    private final String[] fakeColumns = {"STT", "Môn học", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W15"};
-    private final Object[][] fakeDatas = {
-            {"1", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"2", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"3", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"4", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"5", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"6", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"7", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"8", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"9", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"10", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"11", "CSC15001 - An ninh máy tính", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false},
-            {"12", "CSC13102 - Lập trình ứng dụng Java", true, true, true, false, false, false, false, false, false, false, false, false, false, false, false}
-    };
+public class RollCallHistoryWindow extends JFrame implements ActionListener {
+    private final JButton backBtn;
+
+    private final String[] columnsName = {"STT", "Môn học", "W1", "W2", "W3", "W4", "W5", "W6", "W7", "W8", "W9", "W10", "W11", "W12", "W13", "W14", "W15"};
+    private Object[][] data = null;
 
     public RollCallHistoryWindow() {
-        super(AppUtil.getAppNameVn());
+        // Initial data
+        getData();
+
+        // Create GUI
+        this.setTitle(AppUtil.getAppNameVn());
         this.setIconImage(AppUtil.getAppLogo());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(1500, 650);
@@ -46,7 +46,7 @@ public class RollCallHistoryWindow extends JFrame {
         container.add(mainPanel, BorderLayout.CENTER);
 
         // Table
-        DefaultTableModel tableModel = new DefaultTableModel(fakeDatas, fakeColumns);
+        DefaultTableModel tableModel = new DefaultTableModel(data, columnsName);
         JTable table = new JTable(tableModel) {
             @Override
             public Class<?> getColumnClass(int column) {
@@ -93,13 +93,47 @@ public class RollCallHistoryWindow extends JFrame {
         container.add(groupBtn, BorderLayout.SOUTH);
 
         // Back button
-        JButton backBtn = new JButton("Trở lại");
+        backBtn = new JButton("Trở lại");
         backBtn.setFont(GuiUtil.defaultFont);
         backBtn.setPreferredSize(new Dimension(100, 40));
         backBtn.setFocusable(false);
+        backBtn.addActionListener(this);
         groupBtn.add(backBtn);
 
         this.setLocationRelativeTo(null);
         this.setVisible(true);
+    }
+
+    private void getData() {
+        ArrayList<StudentClass> classes = StudentClassDAO.getAllClassesOfStudent(AppUtil.username);
+        if (classes.size() != 0) {
+           data = new Object[classes.size()][17];
+           for (int i = 0; i < classes.size(); i++) {
+               String stt = String.valueOf(i + 1);
+               data[i][0] = stt;
+
+               String subject = classes.get(i).getaClass().getSubject().getId() + " - " + classes.get(i).getaClass().getSubject().getSubjectName();
+               data[i][1] = subject;
+
+               for (int j = 0; j < 15; j++) {
+                   AttendanceTracking at = AttendanceTrackingDAO.getAttendanceTracking(classes.get(i).getId(), j + 1);
+                   if (at.getAbsent() != null) {
+                       data[i][j + 2] = !at.getAbsent();
+                   }
+                   else {
+                       data[i][j + 2] = false;
+                   }
+               }
+           }
+        }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == backBtn) {
+            this.dispose();
+            MainMenuWindow mainMenuWindow = new MainMenuWindow();
+            mainMenuWindow.setStudentView();
+        }
     }
 }

@@ -2,6 +2,10 @@ package org.example.gui;
 
 import com.github.lgooddatepicker.components.TimePicker;
 import com.github.lgooddatepicker.components.TimePickerSettings;
+import org.example.dao.ClassDAO;
+import org.example.dao.SubjectDAO;
+import org.example.entity.Class;
+import org.example.entity.Subject;
 import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 import org.jdatepicker.impl.JDatePanelImpl;
@@ -11,42 +15,48 @@ import org.jdatepicker.impl.UtilDateModel;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.border.TitledBorder;
+import javax.swing.event.DocumentEvent;
+import javax.swing.event.DocumentListener;
 import javax.swing.table.DefaultTableCellRenderer;
+import javax.swing.table.DefaultTableModel;
 import javax.swing.table.TableColumnModel;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Properties;
 
-public class AddClassWindow extends JFrame {
+public class AddClassWindow extends JFrame implements ActionListener, DocumentListener {
+    private final JButton addBtn;
+    private final JButton backBtn;
 
-    private final String[] fakeData = {
-            "CSC15001 - An ninh máy tính",
-            "CSC13102 - Lập trình ứng dụng Java",
-            "CSC13010 - Thiết kế phần mềm",
-            "CSC10108 - Trực quan hoá dữ liệu"
-    };
+    private final JComboBox<String> selectSubjectCb;
+    private final JDatePickerImpl startDatePicker;
+    private final JTextField endDateTxt;
+    private final JTextField weekdayTxt;
+    private final TimePicker startTimePicker;
+    private final TimePicker endTimePicker;
+    private final JTextField roomTxt;
 
-    private final String[] fakeColumn = {"STT", "Môn học", "Thứ", "Thời gian", "Phòng", "Ngày bắt đầu - Ngày kết thúc"};
-    private final String[][] fakeDatas = {
-            {"1", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"2", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"},
-            {"3", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"4", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"},
-            {"5", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"6", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"},
-            {"7", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"8", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"},
-            {"9", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"10", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"},
-            {"11", "CSC15001 - An ninh máy tính", "Thứ tư", "7:30 - 11:30", "E102", "10/04/2022 - 11/05/2022"},
-            {"12", "CSC13102 - Lập trình ứng dụng Java", "Thứ năm", "12:30 - 17:00", "E102", "08/02/2022 - 20/11/2022"}
-    };
+    private final DefaultTableModel tableModel;
+    private final JTable table;
+
+    private String[] subjects = { "Rỗng" };
+    private final String[] columnsName = {"STT", "Môn học", "Thứ", "Thời gian", "Phòng", "Ngày bắt đầu - Ngày kết thúc"};
+    private String[][] data = null;
 
     public AddClassWindow() {
-        super(AppUtil.getAppNameVn());
+        // Initial data
+        getData();
+
+        // Create GUI
+        this.setTitle(AppUtil.getAppNameVn());
         this.setIconImage(AppUtil.getAppLogo());
         this.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         this.setSize(1200, 650);
@@ -78,7 +88,7 @@ public class AddClassWindow extends JFrame {
         row1.add(selectSubjectLabel);
 
         // Choose Subject ComboBox
-        JComboBox<String> selectSubjectCb = new JComboBox<>(fakeData);
+        selectSubjectCb = new JComboBox<>(subjects);
         selectSubjectCb.setFont(GuiUtil.defaultFont);
         selectSubjectCb.setFocusable(false);
         row1.add(selectSubjectCb);
@@ -95,10 +105,11 @@ public class AddClassWindow extends JFrame {
         p.put("text.year", "Year");
 
         // Start date select
-        UtilDateModel model1 = new UtilDateModel();
-        JDatePanelImpl startDatePanel = new JDatePanelImpl(model1, p);
-        JDatePickerImpl startDatePicker = new JDatePickerImpl(startDatePanel, new DateLabelFormatter());
+        UtilDateModel model = new UtilDateModel();
+        JDatePanelImpl startDatePanel = new JDatePanelImpl(model, p);
+        startDatePicker = new JDatePickerImpl(startDatePanel, new DateLabelFormatter());
         startDatePicker.getJFormattedTextField().setFont(GuiUtil.defaultFont);
+        startDatePicker.getJFormattedTextField().getDocument().addDocumentListener(this);
         row1.add(startDatePicker);
 
         // End date label
@@ -106,12 +117,12 @@ public class AddClassWindow extends JFrame {
         endDateLabel.setFont(GuiUtil.defaultFont);
         row1.add(endDateLabel);
 
-        // End date select
-        UtilDateModel model2 = new UtilDateModel();
-        JDatePanelImpl endDatePanel = new JDatePanelImpl(model2, p);
-        JDatePickerImpl endDatePicker = new JDatePickerImpl(endDatePanel, new DateLabelFormatter());
-        endDatePicker.getJFormattedTextField().setFont(GuiUtil.defaultFont);
-        row1.add(endDatePicker);
+        // End date text field
+        endDateTxt = new JTextField();
+        endDateTxt.setFont(GuiUtil.defaultFont);
+        endDateTxt.setEnabled(false);
+        endDateTxt.setColumns(15);
+        row1.add(endDateTxt);
 
         // Row 2 input group
         JPanel row2 = new JPanel(new FlowLayout(FlowLayout.LEFT, 10,0));
@@ -123,7 +134,7 @@ public class AddClassWindow extends JFrame {
         row2.add(weekdayLabel);
 
         // Weekday input field
-        JTextField weekdayTxt = new JTextField();
+        weekdayTxt = new JTextField();
         weekdayTxt.setFont(GuiUtil.defaultFont);
         weekdayTxt.setColumns(7);
         weekdayTxt.setText("Thứ tư");
@@ -144,7 +155,7 @@ public class AddClassWindow extends JFrame {
         timeSettings.fontInvalidTime = new Font("Arial", Font.PLAIN, 16);
 
         // Start time input field
-        TimePicker startTimePicker = new TimePicker(timeSettings);
+        startTimePicker = new TimePicker(timeSettings);
         row2.add(startTimePicker);
 
         // End time Label
@@ -153,7 +164,7 @@ public class AddClassWindow extends JFrame {
         row2.add(endTimeLabel);
 
         // End time input field
-        TimePicker endTimePicker = new TimePicker(timeSettings);
+        endTimePicker = new TimePicker(timeSettings);
         row2.add(endTimePicker);
 
         // Room label
@@ -162,7 +173,7 @@ public class AddClassWindow extends JFrame {
         row2.add(roomLabel);
 
         // Room input field
-        JTextField roomTxt = new JTextField();
+        roomTxt = new JTextField();
         roomTxt.setFont(GuiUtil.defaultFont);
         roomTxt.setColumns(5);
         row2.add(roomTxt);
@@ -172,28 +183,22 @@ public class AddClassWindow extends JFrame {
         inputGroup.add(row3);
 
         // Add button
-        JButton addBtn = new JButton("Thêm");
+        addBtn = new JButton("Thêm");
         addBtn.setFont(GuiUtil.defaultFont);
         addBtn.setPreferredSize(new Dimension(100, 35));
         addBtn.setFocusable(false);
+        addBtn.addActionListener(this);
         row3.add(addBtn);
 
-        // Update button
-        JButton updateBtn = new JButton("Sửa");
-        updateBtn.setFont(GuiUtil.defaultFont);
-        updateBtn.setPreferredSize(new Dimension(100, 35));
-        updateBtn.setFocusable(false);
-        row3.add(updateBtn);
-
-        // Delete button
-        JButton deleteBtn = new JButton("Xoá");
-        deleteBtn.setFont(GuiUtil.defaultFont);
-        deleteBtn.setPreferredSize(new Dimension(100, 35));
-        deleteBtn.setFocusable(false);
-        row3.add(deleteBtn);
-
         // Table
-        JTable table = new JTable(fakeDatas, fakeColumn);
+        if (data == null) {
+            tableModel = new DefaultTableModel(1, columnsName.length);
+            tableModel.setColumnIdentifiers(columnsName);
+        }
+        else {
+            tableModel = new DefaultTableModel(data, columnsName);
+        }
+        table = new JTable(tableModel);
         table.getTableHeader().setPreferredSize(new Dimension(0, 50));
         table.getTableHeader().setFont(new Font("Arial", Font.BOLD, 16));
         table.setFont(GuiUtil.defaultFont);
@@ -232,12 +237,57 @@ public class AddClassWindow extends JFrame {
 
         container.add(panel3, BorderLayout.CENTER);
 
+        // Footer panel
+        JPanel footerPanel = new JPanel(new FlowLayout());
+        container.add(footerPanel, BorderLayout.SOUTH);
+
+        // Back button
+        backBtn = new JButton("Trở lại");
+        backBtn.setFont(GuiUtil.defaultFont);
+        backBtn.setPreferredSize(new Dimension(100, 40));
+        backBtn.setFocusable(false);
+        backBtn.addActionListener(this);
+        footerPanel.add(backBtn);
+
         this.setLocationRelativeTo(null);
         this.setVisible(true);
     }
 
-    public class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
+    private void getData() {
+        ArrayList<Subject> subjectList = new ArrayList<>(SubjectDAO.getAllSubjects());
+        if (subjectList.size() != 0) {
+            subjects = new String[subjectList.size()];
+            for (int i = 0; i < subjectList.size(); i++) {
+                String txt = subjectList.get(i).getId() + " - " + subjectList.get(i).getSubjectName();
+                subjects[i] = txt;
+            }
+        }
+        ArrayList<Class> classList = new ArrayList<>(ClassDAO.getAllClasses());
+        if (classList.size() != 0) {
+            data = new String[classList.size()][7];
+            for (int i = 0; i < classList.size(); i++) {
+                String stt = String.valueOf(i + 1);
+                data[i][0] = stt;
 
+                String subject = classList.get(i).getSubject().getId() + " - " + classList.get(i).getSubject().getSubjectName();
+                data[i][1] = subject;
+
+                String weekday = classList.get(i).getWeekdayToString();
+                data[i][2] = weekday;
+
+                data[i][3] = classList.get(i).getTimeRangeString();
+
+                String room = classList.get(i).getRoom();
+                data[i][4] = room;
+
+                data[i][5] = classList.get(i).getDateRangeString();
+
+                data[i][6] = String.valueOf(classList.get(i).getId());
+            }
+        }
+    }
+
+    public class DateLabelFormatter extends JFormattedTextField.AbstractFormatter {
         private String datePattern = "dd-MM-yyyy";
         private SimpleDateFormat dateFormatter = new SimpleDateFormat(datePattern);
 
@@ -247,14 +297,107 @@ public class AddClassWindow extends JFrame {
         }
 
         @Override
-        public String valueToString(Object value) throws ParseException {
+        public String valueToString(Object value) {
             if (value != null) {
                 Calendar cal = (Calendar) value;
                 return dateFormatter.format(cal.getTime());
             }
-
             return "";
         }
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        Object source = e.getSource();
+        if (backBtn.equals(source)) {
+            this.dispose();
+            MainMenuWindow mainMenuWindow = new MainMenuWindow();
+            mainMenuWindow.setTeacherView();
+        }
+        else if (addBtn.equals(source)) {
+            try {
+                String subject = (String) selectSubjectCb.getSelectedItem();
+                String subjectId = subject.split(" - ")[0];
+
+                Calendar calendar = Calendar.getInstance();
+                SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
+                Date startDate = (Date) startDatePicker.getModel().getValue();
+                calendar.setTime(startDate);
+                calendar.set(Calendar.HOUR_OF_DAY, 0);
+                calendar.set(Calendar.MINUTE, 0);
+                calendar.set(Calendar.SECOND, 0);
+                calendar.set(Calendar.MILLISECOND, 0);
+                startDate = calendar.getTime();
+                String endDateStr = endDateTxt.getText();
+                Date endDate = null;
+                if (!endDateStr.equals(""))
+                    endDate = formatter.parse(endDateStr);
+
+                String weekdayStr = weekdayTxt.getText();
+                int weekday = AppUtil.getDayOfWeekInteger(weekdayStr);
+
+                LocalTime startTime = startTimePicker.getTime();
+                LocalTime endTime = endTimePicker.getTime();
+
+                String room = roomTxt.getText();
+
+                if ( endDateStr.equals("") || room.equals("")) {
+                    JOptionPane.showMessageDialog(null, "Không được bỏ trống", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                else if (ClassDAO.isClassExists(subjectId, startDate, startTime, endTime, room)){
+                    JOptionPane.showMessageDialog(null, "Lớp học đã tồn tại", "Lỗi", JOptionPane.ERROR_MESSAGE);
+                }
+                else {
+                    ClassDAO.createClass(subjectId, startDate, endDate, weekday, startTime, endTime, room);
+                    String startTimeStr = startTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+                    String endTimeStr = endTime.format(DateTimeFormatter.ofPattern("HH:mm"));
+                    String time = startTimeStr + " - " + endTimeStr;
+
+                    String startDateStr = formatter.format(startDate);
+                    String date = startDateStr + "  -  " + endDateStr;
+                    if (table.getValueAt(0,0) == null) {
+                        table.setValueAt(1, 0,0);
+                        table.setValueAt(subject,0,1);
+                        table.setValueAt(weekdayStr,0,2);
+                        table.setValueAt(time,0,3);
+                        table.setValueAt(room, 0,4);
+                        table.setValueAt(date,0,5);
+                    }
+                    else {
+                        int numRows = table.getRowCount();
+                        String stt = String.valueOf(numRows + 1);
+                        tableModel.addRow(new Object[] {stt, subject, weekdayStr, time, room, date});
+                    }
+                }
+            } catch (ParseException ex) {
+                throw new RuntimeException(ex);
+            }
+        }
+    }
+
+    @Override
+    public void insertUpdate(DocumentEvent e) {
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy");
+        Date startDate = (Date) startDatePicker.getModel().getValue();
+
+        Calendar c = Calendar.getInstance();
+        c.setTime(startDate);
+        int weekday = c.get(Calendar.DAY_OF_WEEK);
+        c.add(Calendar.DATE, 7 * 14);
+        Date endDate = c.getTime();
+
+        endDateTxt.setText(formatter.format(endDate));
+
+        weekdayTxt.setText(AppUtil.getDayOfWeekString(weekday));
+    }
+
+    @Override
+    public void removeUpdate(DocumentEvent e) {
+
+    }
+
+    @Override
+    public void changedUpdate(DocumentEvent e) {
 
     }
 }

@@ -4,10 +4,11 @@ import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 
 import javax.swing.*;
-import javax.swing.border.EmptyBorder;
 import java.awt.*;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
 
-public class MainMenuWindow extends JFrame {
+public class MainMenuWindow extends JFrame implements ActionListener {
     private final JLabel subTitle;
     private final JPanel mainPanel;
     private final JButton addSubjectBtn;
@@ -15,6 +16,8 @@ public class MainMenuWindow extends JFrame {
     private final JButton classManagerBtn;
     private final JButton rollCallBtn;
     private final JButton rollCallHistoryBtn;
+    private final JButton logoutBtn;
+    private final JButton changePasswordBtn;
 
     public MainMenuWindow() {
         super(AppUtil.getAppNameVn());
@@ -55,6 +58,7 @@ public class MainMenuWindow extends JFrame {
         addSubjectBtn.setFont(GuiUtil.defaultFont);
         addSubjectBtn.setIcon(icon1);
         addSubjectBtn.setMargin(new Insets(8,16,8,16));
+        addSubjectBtn.addActionListener(this);
 
         // Add new class Button
         ImageIcon icon2 = new ImageIcon("./assets/icons/class.png");
@@ -62,7 +66,7 @@ public class MainMenuWindow extends JFrame {
         addClassBtn.setFont(GuiUtil.defaultFont);
         addClassBtn.setIcon(icon2);
         addClassBtn.setMargin(new Insets(8,16,8,16));
-
+        addClassBtn.addActionListener(this);
 
         // Class manager Button
         ImageIcon icon3 = new ImageIcon("./assets/icons/class_manager.png");
@@ -70,6 +74,7 @@ public class MainMenuWindow extends JFrame {
         classManagerBtn.setFont(GuiUtil.defaultFont);
         classManagerBtn.setIcon(icon3);
         classManagerBtn.setMargin(new Insets(8,16,8,16));
+        classManagerBtn.addActionListener(this);
 
         // Roll-call Button
         ImageIcon icon5 = new ImageIcon("./assets/icons/roll_call.png");
@@ -77,6 +82,7 @@ public class MainMenuWindow extends JFrame {
         rollCallBtn.setFont(GuiUtil.defaultFont);
         rollCallBtn.setIcon(icon5);
         rollCallBtn.setMargin(new Insets(8,16,8,16));
+        rollCallBtn.addActionListener(this);
 
 
         // History Roll-call Button
@@ -85,19 +91,31 @@ public class MainMenuWindow extends JFrame {
         rollCallHistoryBtn.setFont(GuiUtil.defaultFont);
         rollCallHistoryBtn.setIcon(icon6);
         rollCallHistoryBtn.setMargin(new Insets(8,16,8,16));
+        rollCallHistoryBtn.addActionListener(this);
 
 
         // Bottom Panel
         JPanel bottomPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 50));
         container.add(bottomPanel);
 
+        // Change Password Button
+        ImageIcon icon4 = new ImageIcon("./assets/icons/change_password.png");
+        changePasswordBtn = new JButton("Đổi mật khẩu");
+        changePasswordBtn.setFocusable(false);
+        changePasswordBtn.setFont(GuiUtil.defaultFont);
+        changePasswordBtn.setIcon(icon4);
+        changePasswordBtn.setMargin(new Insets(8,16,8,16));
+        changePasswordBtn.addActionListener(this);
+        bottomPanel.add(changePasswordBtn);
+
         // Logout Button
-        ImageIcon icon4 = new ImageIcon("./assets/icons/log_out.png");
-        JButton logoutBtn = new JButton("Đăng xuất");
+        ImageIcon icon7 = new ImageIcon("./assets/icons/log_out.png");
+        logoutBtn = new JButton("Đăng xuất");
         logoutBtn.setFocusable(false);
         logoutBtn.setFont(GuiUtil.defaultFont);
-        logoutBtn.setIcon(icon4);
+        logoutBtn.setIcon(icon7);
         logoutBtn.setMargin(new Insets(8,16,8,16));
+        logoutBtn.addActionListener(this);
         bottomPanel.add(logoutBtn);
 
         this.setLocationRelativeTo(null);
@@ -121,5 +139,42 @@ public class MainMenuWindow extends JFrame {
         mainPanel.add(addSubjectBtn);
         mainPanel.add(addClassBtn);
         mainPanel.add(classManagerBtn);
+    }
+
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        Object source = e.getSource();
+        if (logoutBtn.equals(source)) {
+            int answer = JOptionPane.showConfirmDialog(null, "Bạn có muốn đăng xuất không?", "Xác nhận", JOptionPane.YES_NO_OPTION);
+            if (answer == 0) {
+                this.dispose();
+                new LoginWindow();
+            }
+        }
+        else if (addSubjectBtn.equals(source)) {
+            this.dispose();
+            new AddSubjectWindow();
+        }
+        else if (addClassBtn.equals(source)) {
+            this.dispose();
+            new AddClassWindow();
+        }
+        else if (classManagerBtn.equals(source)) {
+            this.dispose();
+            new ClassManagerWindow();
+        }
+        else if (changePasswordBtn.equals(source)) {
+            this.dispose();
+            ChangePasswordWindow changePasswordWindow = new ChangePasswordWindow();
+            changePasswordWindow.addReturnButton();
+        }
+        else if (rollCallBtn.equals(source)) {
+            this.dispose();
+            new StudentRollCallWindow();
+        }
+        else if (rollCallHistoryBtn.equals(source)) {
+            this.dispose();
+            new RollCallHistoryWindow();
+        }
     }
 }

@@ -67,6 +67,8 @@ public class AccountDAO {
     }
 
     public static void createAccount(String username, String password, boolean isStudent) {
+        if (isAccountExists(username))
+            return;
         try (Session session = HibernateUtil.getSessionFactory().openSession()) {
             session.getTransaction().begin();
 
@@ -105,6 +107,22 @@ public class AccountDAO {
             Account account = getAccountByUsername(username);
             session.evict(account);
             account.setPassword(newHashedPassword);
+            session.update(account);
+
+            session.getTransaction().commit();
+        }
+    }
+
+    // Đổi trạng thái sang đã đăng nhập
+    public static void changeLoginStatus(String username) {
+        Account account = getAccountByUsername(username);
+        if (account == null)
+            return;
+        try (Session session = HibernateUtil.getSessionFactory().openSession()) {
+            session.getTransaction().begin();
+
+            session.evict(account);
+            account.setLogin(true);
             session.update(account);
 
             session.getTransaction().commit();

@@ -12,6 +12,8 @@ public class Account implements Serializable {
     private int id;
     private String username;
     private String password;
+    @Column(name = "is_login")
+    private boolean isLogin;
     @Column(name = "is_student")
     private boolean isStudent;
 
@@ -26,6 +28,7 @@ public class Account implements Serializable {
         this.username = username;
         this.password = password;
         this.isStudent = isStudent;
+        this.isLogin = false;
     }
 
     public int getId() {
@@ -58,6 +61,14 @@ public class Account implements Serializable {
 
     public void setStudent(boolean student) {
         isStudent = student;
+    }
+
+    public boolean isLogin() {
+        return isLogin;
+    }
+
+    public void setLogin(boolean login) {
+        isLogin = login;
     }
 
     public Student getStudent() {
