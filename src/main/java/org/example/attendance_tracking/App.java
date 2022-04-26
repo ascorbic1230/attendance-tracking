@@ -6,10 +6,12 @@ import org.hibernate.Session;
 
 public class App {
     public static void main(String[] args) {
-        // first run hibernate
-        Session session = HibernateUtil.getSessionFactory().openSession();
-        session.close();
-        // start application
-        new LoginWindow();
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            // first run hibernate
+            Session session = HibernateUtil.getSessionFactory().openSession();
+            session.close();
+            // start application
+            new LoginWindow();
+        });
     }
 }

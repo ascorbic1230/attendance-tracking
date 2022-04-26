@@ -2,6 +2,7 @@ package org.example.gui;
 
 import org.example.dao.StudentClassDAO;
 import org.example.dao.StudentDAO;
+import org.example.entity.Student;
 import org.example.utils.AppUtil;
 import org.example.utils.GuiUtil;
 
@@ -40,7 +41,8 @@ public class AddStudentWindow extends JFrame implements ActionListener {
     private String[][] data = null;
 
     public AddStudentWindow(ClassManagerWindow parent) {
-        super(AppUtil.getAppNameVn());
+        // create GUI
+        this.setTitle(AppUtil.getAppNameVn());
         this.setIconImage(AppUtil.getAppLogo());
         this.setDefaultCloseOperation(JFrame.DO_NOTHING_ON_CLOSE);
         this.setSize(1000, 550);
@@ -216,8 +218,18 @@ public class AddStudentWindow extends JFrame implements ActionListener {
         confirmBtn.addActionListener(this);
         panel2.add(confirmBtn);
 
+        // Initial data
+        getData();
+
         this.setLocationRelativeTo(null);
         this.setVisible(true);
+    }
+
+    private void getData() {
+        ArrayList<Student> students = new ArrayList<>(StudentDAO.getAllStudents());
+        for (Student s : students) {
+            addStudentToTable(s.getId(), s.getName());
+        }
     }
 
     private void addStudentToTable(String studentId, String studentName) {
